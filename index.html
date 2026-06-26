@@ -1359,6 +1359,7 @@
             updateDashboard();
             renderPreviewTable();
             updateGroupDashboard();
+            updateAuthStatusUI();
         }, 800);
     }
 
@@ -1392,7 +1393,7 @@
         return fullText;
     }
 
-    // Custom regex parsing using whitespace removed text
+    // Custom regex parsing using whitespace removed text (HBL 정밀 검출 위주로 개편)
     function parseDeclarationInfo(text) {
         let declNo = '';
         let blNo = '';
@@ -1411,27 +1412,52 @@
             declNo = `${declMatch1[1]}-${declMatch1[2]}-${declMatch1[3]}`;
         }
 
-        // 2. B/L 번호 패턴 검출
-        const blPattern1 = /(?:BL\(AWB\)번호|BL번호|BLAWB번호)[\s:：]*([A-Z0-9\-_/]{4,})/i;
-        const blMatch1 = cleanText.match(blPattern1);
-        if (blMatch1 && blMatch1[1]) {
-            blNo = blMatch1[1];
-        } else {
-            const blPattern2 = /(?:B\/L\s*\(AWB\)\s*번\s*호|B\/L\s*번\s*호|B\/L\s*AWB\s*번호)[\s:：]*([A-Z0-9\-_/]{4,})/i;
-            const blMatch2 = text.match(blPattern2);
-            if (blMatch2 && blMatch2[1]) {
-                blNo = blMatch2[1].trim();
-            } else {
-                const blPattern3 = /(?:B\/L|AWB)[\s:：]*([A-Z0-9\-_/]{5,})/i;
-                const blMatch3 = cleanText.match(blPattern3);
-                if (blMatch3 && blMatch3[1]) {
-                    blNo = blMatch3[1];
+        // 2. HBL 번호 패턴 검출 (신고서 4번 영역 B/L(AWB)번호 최우선 추출)
+        const hblRegexes = [
+            /(?:④|4\.)?\s*B\s*\/?\s*L\s*\(\s*A\s*W\s*B\s*\)\s*번\s*호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
+            /(?:④|4\.)?\s*B\/L\s*AWB\s*번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
+            /(?:④|4\.)?\s*B\/L\s*번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
+            /B\/L\s*\(AWB\)\s*번\s*호[\s:：]*([A-Z0-9\-_/]{5,20})/i
+        ];
+
+        const cleanHblRegexes = [
+            /(?:④|4\.)?BL\(AWB\)번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
+            /(?:④|4\.)?BLAWB번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
+            /(?:④|4\.)?BL번호[\s:：]*([A-Z0-9\-_/]{5,20})/i
+        ];
+
+        // 2-1. 공백 제거 텍스트에서 4번 B/L번호 뒤의 문자열 1순위 탐색
+        for (const regex of cleanHblRegexes) {
+            const match = cleanText.match(regex);
+            if (match && match[1]) {
+                blNo = match[1];
+                break;
+            }
+        }
+
+        // 2-2. 원본 텍스트에서 레이아웃 기준 2순위 탐색
+        if (!blNo) {
+            for (const regex of hblRegexes) {
+                const match = text.match(regex);
+                if (match && match[1]) {
+                    blNo = match[1].trim();
+                    break;
                 }
+            }
+        }
+
+        // 2-3. 매칭이 여전히 없으면 일반 B/L 패턴 검출 3순위 탐색
+        if (!blNo) {
+            const blPattern3 = /(?:B\/L|AWB)[\s:：]*([A-Z0-9\-_/]{5,20})/i;
+            const blMatch3 = cleanText.match(blPattern3);
+            if (blMatch3 && blMatch3[1]) {
+                blNo = blMatch3[1];
             }
         }
 
         if (blNo) {
             blNo = blNo.trim();
+            // 숫자만으로 길거나 이상한 데이터 필터링
             if (blNo.length > 25 || /^[0-9가-힣\s]+$/.test(blNo) && blNo.length > 15) {
                 blNo = '';
             }
