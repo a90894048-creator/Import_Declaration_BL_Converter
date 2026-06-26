@@ -1414,14 +1414,14 @@
 
         // 2. MASTER B/L 번호 사전 탐색 (HBL 오인 방지용)
         let masterBl = '';
-        const masterMatch = cleanText.match(/(?:MASTERBL번호|MASTERB\/L번호|마스터BL번호|MASTERBL|MASTERB\/L)(?:번호)?[\s:：]*([A-Z0-9\-_/]{5,25})/i);
+        const masterMatch = cleanText.match(/(?:MASTERBL|MASTERB\/?L|마스터BL|마스터B\/?L)(?:번호)?[\s:：]*([A-Z0-9\-_/]{5,25})/i);
         if (masterMatch && masterMatch[1]) {
             masterBl = masterMatch[1];
         }
 
         // 3. HBL 번호 패턴 검출 (1순위: 징수형태 헤더와의 수입신고필증 가로정렬 매칭 구조 이용)
         // 4B/L(AWB)번호5화물관리번호8반입일9징수형태[HBL번호] 구조
-        const hblPattern1 = /BL\(AWB\)번호.*?징수형태([A-Z0-9\-_/]{5,25})/i;
+        const hblPattern1 = /B\/?L\(?AWB\)?번호.*?징수형태([A-Z0-9\-_/]{5,25})/i;
         const hblMatch1 = cleanText.match(hblPattern1);
         if (hblMatch1 && hblMatch1[1]) {
             const candidate = hblMatch1[1];
