@@ -1765,7 +1765,7 @@
                     ${fileListHtml}
                 </div>
                 <div class="group-actions">
-                    <button class="btn btn-primary" id="btnSendGroup-${index}" onclick="sendGroupMail(${index})" ${isAuthorized ? '' : 'disabled'}>
+                    <button class="btn btn-primary" id="btnSendGroup-${index}" onclick="sendGroupMail(${index})">
                         <i data-lucide="mail"></i> 메일 발송
                     </button>
                     <button class="btn btn-secondary" onclick="copyMailBodyToClipboard(${index})" title="메일 본문 복사">
@@ -1926,69 +1926,74 @@
         const batchBtn = document.getElementById('btnBatchSend');
 
         if (isAuthorized) {
-            status.innerText = '인증 완료';
+            status.innerText = '연동 완료';
             status.style.color = 'var(--success)';
-            authBtn.innerHTML = '<i data-lucide="log-out" style="width: 14px; height: 14px;"></i> 인증 로그아웃';
+            authBtn.innerHTML = '<i data-lucide="log-out" style="width: 14px; height: 14px;"></i> 연동 로그아웃';
             authBtn.className = 'btn btn-secondary';
-            if (batchBtn) batchBtn.disabled = false;
         } else {
-            status.innerText = '미연동';
-            status.style.color = 'var(--danger)';
-            authBtn.innerHTML = '<i data-lucide="log-in" style="width: 14px; height: 14px;"></i> 구글 계정 인증하기';
+            status.innerText = '발송 시 자동인증';
+            status.style.color = 'var(--warning)';
+            authBtn.innerHTML = '<i data-lucide="log-in" style="width: 14px; height: 14px;"></i> 수동 연동하기';
             authBtn.className = 'btn btn-primary';
-            if (batchBtn) batchBtn.disabled = true;
         }
+        
+        // 일괄 발송 버튼은 파일이 있으면 항상 활성화
+        if (batchBtn) {
+            batchBtn.disabled = (fileList.length === 0 || isProcessing);
+        }
+        }
+        
         lucide.createIcons();
     }
 
-    // Trigger Google Sign-In and Scopes Approval popup
-    function handleAuthClick() {
-        const settings = getMailSettings();
-        if (!settings.clientId || !settings.apiKey) {
-            alert('설정 패널에 구글 Client ID와 API Key를 먼저 정확히 기재해 주세요.');
-            return;
-        }
-
-        if (!isAuthorized) {
-            // Trigger login popup
-            if (tokenClient) {
-                // Request Access Token
-                tokenClient.callback = async (resp) => {
-                    if (resp.error !== undefined) {
-                        showToast('인증 에러: ' + resp.error);
-                        return;
-                    }
-                    localStorage.setItem('gapi_access_token', resp.access_token);
-                    isAuthorized = true;
-                    updateAuthStatusUI();
-                    updateGroupDashboard();
-                    showToast('구글 Gmail 인증에 성공했습니다!');
-                };
-                tokenClient.requestAccessToken({ prompt: 'consent' });
-            } else {
-                // Re-init
-                initGapiAndGis().then(() => {
-                    if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
-                });
+    // 발송 시점에 구글 인증 상태를 검증하고, 만료시 자동으로 로그인창을 띄워 연속 실행을 보장하는 헬퍼
+    function ensureAuthorized() {
+        return new Promise(async (resolve, reject) => {
+            if (isAuthorized) {
+                try {
+                    await gapi.client.gmail.users.getProfile({ userId: 'me' });
+                    resolve(true);
+                    return;
+                } catch (e) {
+                    isAuthorized = false;
+                }
             }
-        } else {
-            // Logout / Clear session
-            gapi.client.setToken(null);
-            localStorage.removeItem('gapi_access_token');
-            isAuthorized = false;
-            updateAuthStatusUI();
-            updateGroupDashboard();
-            showToast('연동이 로그아웃되었습니다.');
-        }
+            
+            const settings = getMailSettings();
+            if (!settings.clientId || !settings.apiKey) {
+                alert('설정 패널에 구글 Client ID와 API Key를 먼저 정확히 기재해 주세요.');
+                reject(new Error('Missing credentials'));
+                return;
+            }
+
+            if (!tokenClient) {
+                await initGapiAndGis();
+            }
+
+            if (!tokenClient) {
+                alert('구글 API 클라이언트가 준비되지 않았습니다. 인터넷 연결이나 키 설정을 확인해 주세요.');
+                reject(new Error('GAPI init failed'));
+                return;
+            }
+
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    reject(new Error(resp.error));
+                    return;
+                }
+                localStorage.setItem('gapi_access_token', resp.access_token);
+                isAuthorized = true;
+                updateAuthStatusUI();
+                updateGroupDashboard();
+                resolve(true);
+            };
+
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        });
     }
 
     // Send single group (6 files) automatically via Gmail API
     async function sendGroupMail(index) {
-        if (!isAuthorized) {
-            alert('구글 계정 인증을 완료하셔야 자동 전송이 가능합니다.');
-            return;
-        }
-
         const groups = getFileGroups();
         const group = groups[index];
         if (!group) return;
@@ -2001,6 +2006,9 @@
         lucide.createIcons();
 
         try {
+            // 발송 전 자동 인증 확보
+            await ensureAuthorized();
+
             const settings = getMailSettings();
             const { subject, body } = generateMailText(group, index, settings);
 
