@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수입신고필증 B/L 자동 변환기 & Gmail 자동 발송기</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            /* Dark Theme Colors (Default) */
+            --bg-gradient: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #0f172a 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-glow: rgba(99, 102, 241, 0.3);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.2);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --dropzone-border: #4f46e5;
+            --dropzone-bg-hover: rgba(99, 102, 241, 0.08);
+            --table-header-bg: rgba(15, 23, 42, 0.6);
+            --table-row-hover: rgba(255, 255, 255, 0.03);
+            --input-bg: rgba(15, 23, 42, 0.8);
+            --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            /* Light Theme Colors */
+            --bg-gradient: radial-gradient(circle at 50% 50%, #f1f5f9 0%, #e2e8f0 100%);
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --card-border: rgba(0, 0, 0, 0.06);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #4f46e5;
+            --primary-hover: #3730a3;
+            --primary-glow: rgba(79, 70, 229, 0.15);
+            --success: #059669;
+            --success-glow: rgba(5, 150, 105, 0.15);
+            --warning: #d97706;
+            --warning-glow: rgba(217, 119, 6, 0.15);
+            --danger: #dc2626;
+            --danger-glow: rgba(220, 38, 38, 0.15);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+            --dropzone-border: #6366f1;
+            --dropzone-bg-hover: rgba(99, 102, 241, 0.04);
+            --table-header-bg: rgba(241, 245, 249, 0.8);
+            --table-row-hover: rgba(0, 0, 0, 0.015);
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --scrollbar-thumb: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1280px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Glass Card Component */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header Style */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 10px 0 10px;
+        }
+
+        .header-title-area h1 {
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 50%, #4338ca 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        [data-theme="light"] .header-title-area h1 {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title-area p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* App Main Grid */
+        .app-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .app-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Dropzone Upload */
+        .dropzone {
+            border: 2px dashed var(--dropzone-border);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            background: var(--dropzone-bg-hover);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .dropzone-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-glow);
+            color: var(--primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 26px;
+            margin-bottom: 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .dropzone:hover .dropzone-icon {
+            transform: translateY(-5px);
+        }
+
+        .dropzone h3 {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .dropzone p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Progress Area */
+        .progress-container {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, #818cf8 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Statistics Dashboard */
+        .stats-dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stat-icon.total { background: var(--primary-glow); color: var(--primary); }
+        .stat-icon.success { background: var(--success-glow); color: var(--success); }
+        .stat-icon.warning { background: var(--warning-glow); color: var(--warning); }
+        .stat-icon.failed { background: var(--danger-glow); color: var(--danger); }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-info .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .stat-info .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Preview Table & Container */
+        .preview-container {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .table-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .btn-small:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .table-wrapper {
+            max-height: 480px;
+            overflow-y: auto;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            background: var(--table-header-bg);
+        }
+
+        .table-wrapper::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .table-wrapper::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--table-header-bg);
+            padding: 12px 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: var(--table-row-hover);
+        }
+
+        .col-index { width: 50px; text-align: center; }
+        .col-original { width: 22%; font-weight: 500; }
+        .col-status { width: 10%; }
+        .col-editable { width: 22%; cursor: pointer; position: relative; }
+        .col-result { width: 28%; font-weight: 500; }
+        .col-action { width: 60px; text-align: center; }
+
+        /* Status Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge.success { background: var(--success-glow); color: var(--success); }
+        .badge.warning { background: var(--warning-glow); color: var(--warning); }
+        .badge.danger { background: var(--danger-glow); color: var(--danger); }
+
+        /* Editable Input Style */
+        .edit-input {
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--primary);
+            background: var(--input-bg);
+            color: var(--text-main);
+            font-size: 12px;
+            outline: none;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Editing Hover Indicator */
+        .editable-cell {
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .editable-cell:hover {
+            background-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .editable-cell .edit-icon {
+            opacity: 0;
+            color: var(--text-muted);
+            transition: opacity 0.2s;
+        }
+
+        .editable-cell:hover .edit-icon {
+            opacity: 1;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+            background: var(--danger-glow);
+        }
+
+        /* Input Elements & Forms */
+        .setting-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 6px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            background: rgba(0, 0, 0, 0.15);
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 70px;
+            font-family: inherit;
+        }
+
+        /* Auth Status Header Card */
+        .auth-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed var(--card-border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .auth-status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        /* Mail Group Dashboard Card list */
+        .group-dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .group-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.2s;
+        }
+
+        .group-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-glow);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .group-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .group-badge {
+            background: var(--primary-glow);
+            color: var(--primary);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .group-files {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: rgba(0,0,0,0.1);
+            padding: 8px 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .group-file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .group-file-item span:first-child {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Action Buttons */
+        .btn {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 14px var(--success-glow);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Custom alert notification toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--primary);
+            color: var(--text-main);
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Instructions list */
+        .info-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .info-card h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-card ul {
+            list-style-type: none;
+            padding-left: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .info-card li {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            line-height: 1.5;
+        }
+
+        .info-card li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 16px;
+            line-height: 12px;
+        }
+
+        /* Guide Accordion */
+        .guide-accordion {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .accordion-item {
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.1);
+        }
+
+        .accordion-header {
+            padding: 10px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(255,255,255,0.02);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion-content {
+            padding: 12px 14px;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--card-border);
+            display: none;
+            line-height: 1.5;
+        }
+
+        .accordion-content ol {
+            padding-left: 16px;
+        }
+
+        .accordion-content li {
+            margin-bottom: 6px;
+        }
+    </style>
+    <!-- PDF.js, JSZip, Google SDK CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Header -->
+    <header>
+        <div class="header-title-area">
+            <h1><i data-lucide="file-text"></i> 수입신고필증 B/L 자동 변환기</h1>
+            <p>PDF에서 수입신고번호 및 B/L 번호를 정밀 추출하고 6개씩 구글 Gmail로 완전 자동 전송합니다.</p>
+        </div>
+        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="화면 테마 변경">
+            <i data-lucide="sun" id="themeIcon"></i>
+        </button>
+    </header>
+
+    <!-- App Grid -->
+    <div class="app-grid">
+        
+        <!-- Left Column: Upload and Preview Table -->
+        <div class="left-column">
+            
+            <!-- Upload Dropzone -->
+            <div class="glass-card">
+                <div class="dropzone" id="dropzone" onclick="triggerFileInput()">
+                    <div class="dropzone-icon">
+                        <i data-lucide="upload-cloud"></i>
+                    </div>
+                    <h3>PDF 파일들을 여기에 끌어다 놓거나 클릭하여 선택하세요</h3>
+                    <p>수입신고필증 PDF 파일들을 올리면 파일명과 B/L 번호를 자동 파싱합니다.</p>
+                    <input type="file" id="pdfUpload" class="file-input" multiple accept=".pdf" onchange="handleFileSelect(event)">
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-text-row">
+                        <span id="progressStatus">PDF 텍스트 분석 중... (0/0)</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Dashboard (Shown only when files exist) -->
+            <div class="stats-dashboard" id="statsDashboard" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-icon total"><i data-lucide="files"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statTotal">0</span>
+                        <span class="stat-label">총 파일</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success"><i data-lucide="check-circle-2"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statSuccess">0</span>
+                        <span class="stat-label">매칭 완료</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning"><i data-lucide="alert-triangle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statWarning">0</span>
+                        <span class="stat-label">부분 미흡</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon failed"><i data-lucide="x-circle"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statFailed">0</span>
+                        <span class="stat-label">미식별</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview & Edit List -->
+            <div class="glass-card preview-container" id="previewContainer">
+                <div class="table-header-row">
+                    <div class="table-title">
+                        <i data-lucide="eye" style="color: var(--primary);"></i>
+                        변환 미리보기 및 편집
+                    </div>
+                    <div class="table-actions">
+                        <button class="btn-small" onclick="sortFiles('name')"><i data-lucide="sort-asc"></i> 이름 정렬</button>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table id="previewTable">
+                        <thead>
+                            <tr>
+                                <th class="col-index">No.</th>
+                                <th class="col-original">원본 파일명</th>
+                                <th class="col-status">상태</th>
+                                <th class="col-editable">수입신고번호 (편집)</th>
+                                <th class="col-editable">B/L(AWB)번호 (편집)</th>
+                                <th class="col-result">최종 변환 파일명</th>
+                                <th class="col-action">제외</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewBody">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Action bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">💡 미지정된 셀을 더블클릭하면 텍스트를 수동 수정할 수 있습니다.</span>
+                    <button class="btn btn-secondary" onclick="resetApp()"><i data-lucide="refresh-cw"></i> 전체 초기화</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Settings & Group Dashboard -->
+        <div class="right-column">
+            
+            <!-- Email Settings Panel -->
+            <div class="glass-card">
+                <div class="setting-section-title">
+                    <i data-lucide="settings" style="color: var(--primary);"></i> 구글 Gmail 연동 설정
+                </div>
+
+                <!-- Google OAuth Status -->
+                <div class="auth-card">
+                    <div class="auth-status-row">
+                        <span>인증 상태:</span>
+                        <span id="gapiAuthStatus" style="font-weight: 700; color: var(--danger);">미연동</span>
+                    </div>
+                    <button class="btn btn-primary" id="btnGoogleAuth" onclick="handleAuthClick()" style="font-size: 11px; padding: 6px 12px; width: 100%;" disabled>
+                        <i data-lucide="log-in" style="width: 14px; height: 14px;"></i> 구글 계정 인증하기
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="settingRecipient">수신 이메일 주소</label>
+                    <input type="email" id="settingRecipient" class="form-control" placeholder="wsinc01@gmail.com" onchange="saveMailSettings()">
+                </div>
+
+                <div class="form-group">
+                    <label for="settingClientId">구글 Client ID</label>
+                    <input type="text" id="settingClientId" class="form-control" placeholder="발급받은 Client ID 입력" onchange="saveMailSettings()">
+                </div>
+
+                <div class="form-group">
+                    <label for="settingApiKey">구글 API Key</label>
+                    <input type="password" id="settingApiKey" class="form-control" placeholder="발급받은 API Key 입력" onchange="saveMailSettings()">
+                </div>
+
+                <div class="form-group">
+                    <label for="settingSubject">메일 제목 템플릿</label>
+                    <input type="text" id="settingSubject" class="form-control" placeholder="[관세법인 우신]] 수입신고필증 전달드립니다." onchange="saveMailSettings()">
+                </div>
+
+                <div class="form-group">
+                    <label for="settingGroupSize">메일당 첨부 파일 개수</label>
+                    <input type="number" id="settingGroupSize" class="form-control" min="1" max="50" placeholder="6" onchange="saveMailSettings()">
+                </div>
+
+                <div class="form-group">
+                    <label for="settingBodyStart">메일 본문 (시작 문구)</label>
+                    <textarea id="settingBodyStart" class="form-control" onchange="saveMailSettings()"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="settingBodyEnd">메일 본문 (종료 문구)</label>
+                    <textarea id="settingBodyEnd" class="form-control" onchange="saveMailSettings()"></textarea>
+                </div>
+            </div>
+
+            <!-- Mail Group Sending Dashboard -->
+            <div class="glass-card" id="groupDashboardContainer" style="display: none;">
+                <div class="setting-section-title" style="justify-content: space-between; align-items: center; display: flex;">
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="send" style="color: var(--success);"></i> 분할 메일 전송
+                    </span>
+                    <button class="btn btn-success" id="btnBatchSend" onclick="sendAllGroupsMail()" style="font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 700;" disabled>
+                        <i data-lucide="mail-check" style="width: 14px; height: 14px;"></i> 일괄 발송
+                    </button>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">변환 완료된 목록을 지정된 개수 단위로 전송합니다. 인증 후 메일 전송 시, PDF 파일들이 압축되지 않고 개별 첨부되어 구글 메일로 즉시 자동 전송됩니다.</p>
+                <div class="group-dashboard" id="groupDashboard">
+                    <!-- Dynamic Group Cards -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Debug Console -->
+    <div class="glass-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="terminal" style="color: var(--warning);"></i> 텍스트 분석 디버그 로그
+            </h4>
+            <button class="btn-small" onclick="toggleDebugConsole()">디버그 창 열기</button>
+        </div>
+        <div id="debugConsoleArea" style="display: none; margin-top: 15px;">
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+                최근 분석된 PDF에서 추출된 텍스트 원본입니다. 인식 문제 발생 시 복사하여 개선에 참고할 수 있습니다.
+            </p>
+            <textarea id="debugTextarea" readonly style="width: 100%; height: 160px; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-muted); padding: 10px; font-family: monospace; font-size: 11px; resize: vertical;"></textarea>
+        </div>
+    </div>
+
+    <!-- Google Cloud Setup Guide (Accordion) -->
+    <div class="glass-card">
+        <h4 style="font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="help-circle" style="color: var(--primary);"></i> 구글 메일 자동 발송을 위한 구글 클라우드 콘솔 설정 안내
+        </h4>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">자동 첨부 메일 전송 기능을 작동시키기 위해 최초 1회 아래의 구글 API 클라이언트 키 발급 설정이 꼭 필요합니다.</p>
+        
+        <div class="guide-accordion">
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>1단계: Google Cloud Console 접속 및 프로젝트 생성</span>
+                    <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li><a href="https://console.cloud.google.com" target="_blank" style="color: var(--primary);">Google Cloud Console</a>에 구글 계정으로 로그인합니다.</li>
+                        <li>화면 좌측 상단의 프로젝트 선택 목록을 누르고 **'새 프로젝트'**를 생성합니다. (프로젝트 이름 예: `Import-BL-Converter`)</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>2단계: Gmail API 활성화</span>
+                    <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li>프로젝트 대시보드 좌측 상단 메뉴에서 **'API 및 서비스' -> '라이브러리'**로 이동합니다.</li>
+                        <li>검색창에 **`Gmail API`**를 검색하여 클릭한 후, **'사용'** 버튼을 눌러 활성화합니다.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>3단계: OAuth 동의 화면 설정</span>
+                    <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li>좌측 메뉴에서 **'OAuth 동의 화면'** 탭으로 이동합니다.</li>
+                        <li>User Type을 **'외부 (External)'**로 선택하고 생성 버튼을 누릅니다.</li>
+                        <li>앱 이름(예: `필증송부 변환기`)과 사용자 지원 이메일, 개발자 연락처 이메일을 적고 저장합니다.</li>
+                        <li>**'범위 (Scopes)'** 단계에서 **'범위 추가 또는 삭제'**를 클릭한 후, **`.../auth/gmail.send`** (메일 발송 권한) 범위를 검색해 체크하고 추가합니다.</li>
+                        <li>**'테스트 사용자'** 단계에서 메일을 발송할 본인의 Gmail 주소를 **'테스트 사용자 추가'**를 통해 등록합니다. (반드시 등록해야 로그인 가능)</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>4단계: 사용자 인증 정보 발급 (클라이언트 ID 및 API 키)</span>
+                    <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li>좌측 메뉴에서 **'사용자 인증 정보'** 탭으로 이동합니다.</li>
+                        <li>상단의 **`+ 사용자 인증 정보 만들기`**를 눌러 **'API 키'**를 생성합니다. 생성된 API 키를 복사하여 프로그램 설정의 `구글 API Key`에 입력합니다.</li>
+                        <li>다시 **`+ 사용자 인증 정보 만들기`**를 눌러 **'OAuth 클라이언트 ID'**를 생성합니다.
+                            <ul>
+                                <li>애플리케이션 유형: **웹 애플리케이션**</li>
+                                <li>이름: 자유롭게 입력</li>
+                                <li>**승인된 JavaScript 원본**: 로컬 테스트용 주소(`http://localhost`) 및 깃허브 웹 주소(`https://a90894048-creator.github.io`)를 추가합니다.</li>
+                            </ul>
+                        </li>
+                        <li>생성 후 화면에 나타나는 **OAuth 클라이언트 ID** 문자열을 복사하여 프로그램 설정의 `구글 Client ID`에 입력합니다.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>5단계: 로그인 연동 및 발송 시작</span>
+                    <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="accordion-content">
+                    <ol>
+                        <li>키를 입력하고 설정이 자동 저장되면 설정란의 **`구글 계정 인증하기`** 버튼이 활성화됩니다.</li>
+                        <li>인증 버튼을 누르고 구글 로그인을 진행하여 앱 권한 승인 창에서 `계속` 및 `허용`을 선택합니다. (보안 경고 팝업이 뜨면 '고급' -> '이동'을 선택해 넘어갑니다.)</li>
+                        <li>인증 상태가 **'인증 완료'** 배지로 바뀌면 메일 전송 및 일괄 발송 기능이 완전 자동으로 작동합니다.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Toast -->
+<div class="toast" id="toast">
+    <i data-lucide="info" style="width: 16px; height: 16px; color: var(--primary);"></i>
+    <span id="toastMessage">메시지</span>
+</div>
+
+<script>
+    // PDF.js 워커 설정
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    // Global Settings
+    const DEFAULT_SETTINGS = {
+        recipient: 'wsinc01@gmail.com',
+        clientId: '',
+        apiKey: '',
+        subjectTemplate: '[관세법인 우신]] 수입신고필증 전달드립니다.',
+        bodyStart: '안녕하세요,\n지정장치장 수입신고필증 필증송부 건입니다.\n\n■ 첨부 건 B/L 번호 목록:',
+        bodyEnd: '확인 부탁드립니다.\n감사합니다.',
+        groupSize: 6
+    };
+
+    // Global App State
+    let fileList = []; 
+    let isProcessing = false;
+    
+    // Google API State
+    let tokenClient;
+    let gapiInited = false;
+    let gisInited = false;
+    let isAuthorized = false;
+
+    // Theme Management
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const targetTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', targetTheme);
+        localStorage.setItem('theme', targetTheme);
+        updateThemeIcon(targetTheme);
+    }
+
+    function updateThemeIcon(theme) {
+        const iconElement = document.getElementById('themeIcon');
+        if (theme === 'light') {
+            iconElement.setAttribute('data-lucide', 'moon');
+        } else {
+            iconElement.setAttribute('data-lucide', 'sun');
+        }
+        lucide.createIcons();
+    }
+
+    // Load settings from localStorage
+    function loadMailSettings() {
+        let recipient = localStorage.getItem('mail_recipient');
+        // 강제 복구 마이그레이션 wsinc01@gmail.com (대소문자 무관하도록 수정)
+        if (!recipient || recipient.toLowerCase().includes('wscustoms.co.kr')) {
+            recipient = 'wsinc01@gmail.com';
+            localStorage.setItem('mail_recipient', recipient);
+        }
+        
+        const clientId = localStorage.getItem('mail_client_id') || DEFAULT_SETTINGS.clientId;
+        const apiKey = localStorage.getItem('mail_api_key') || DEFAULT_SETTINGS.apiKey;
+        
+        let subjectTemplate = localStorage.getItem('mail_subject');
+        if (!subjectTemplate || subjectTemplate === '[필증송부] {first_bl} 외 {count}건') {
+            subjectTemplate = DEFAULT_SETTINGS.subjectTemplate;
+            localStorage.setItem('mail_subject', subjectTemplate);
+        }
+        
+        const bodyStart = localStorage.getItem('mail_body_start') || DEFAULT_SETTINGS.bodyStart;
+        const bodyEnd = localStorage.getItem('mail_body_end') || DEFAULT_SETTINGS.bodyEnd;
+        const groupSize = localStorage.getItem('mail_group_size') || DEFAULT_SETTINGS.groupSize;
+
+        document.getElementById('settingRecipient').value = recipient;
+        document.getElementById('settingClientId').value = clientId;
+        document.getElementById('settingApiKey').value = apiKey;
+        document.getElementById('settingSubject').value = subjectTemplate;
+        document.getElementById('settingGroupSize').value = groupSize;
+        document.getElementById('settingBodyStart').value = bodyStart;
+        document.getElementById('settingBodyEnd').value = bodyEnd;
+        
+        checkAuthButtonState();
+    }
+
+    // Save settings to localStorage
+    function saveMailSettings() {
+        localStorage.setItem('mail_recipient', document.getElementById('settingRecipient').value.trim());
+        localStorage.setItem('mail_client_id', document.getElementById('settingClientId').value.trim());
+        localStorage.setItem('mail_api_key', document.getElementById('settingApiKey').value.trim());
+        localStorage.setItem('mail_subject', document.getElementById('settingSubject').value.trim());
+        
+        let gSize = parseInt(document.getElementById('settingGroupSize').value, 10);
+        if (isNaN(gSize) || gSize < 1) gSize = DEFAULT_SETTINGS.groupSize;
+        localStorage.setItem('mail_group_size', gSize);
+
+        localStorage.setItem('mail_body_start', document.getElementById('settingBodyStart').value);
+        localStorage.setItem('mail_body_end', document.getElementById('settingBodyEnd').value);
+        
+        showToast('설정이 저장되었습니다.');
+        checkAuthButtonState();
+        updateGroupDashboard(); 
+        
+        // Re-initialize Google APIs if keys changed
+        if (gapiInited && gisInited) {
+            initGapiAndGis();
+        }
+    }
+
+    // Enable/Disable Google Auth Button based on Key inputs
+    function checkAuthButtonState() {
+        const clientId = document.getElementById('settingClientId').value.trim();
+        const apiKey = document.getElementById('settingApiKey').value.trim();
+        const authBtn = document.getElementById('btnGoogleAuth');
+        
+        if (clientId && apiKey) {
+            authBtn.disabled = false;
+        } else {
+            authBtn.disabled = true;
+        }
+    }
+
+    // Toast Alert
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastMessage').innerText = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    // Init App on Load
+    (function init() {
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        window.addEventListener('DOMContentLoaded', () => {
+            updateThemeIcon(savedTheme);
+            loadMailSettings();
+            setupDragAndDrop();
+            gapiLoaded();
+            gisLoaded();
+            lucide.createIcons();
+        });
+    })();
+
+    // Drag & Drop Setup
+    function setupDragAndDrop() {
+        const dropzone = document.getElementById('dropzone');
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            processFiles(files);
+        }, false);
+    }
+
+    function triggerFileInput() {
+        if (isProcessing) return;
+        document.getElementById('pdfUpload').click();
+    }
+
+    function handleFileSelect(event) {
+        const files = event.target.files;
+        processFiles(files);
+    }
+
+    // Process Selected PDF Files
+    async function processFiles(files) {
+        if (files.length === 0) return;
+        
+        isProcessing = true;
+        document.getElementById('pdfUpload').disabled = true;
+        document.getElementById('dropzone').style.pointerEvents = 'none';
+        
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressPercent = document.getElementById('progressPercent');
+        
+        progressContainer.style.display = 'flex';
+        
+        const total = files.length;
+        
+        for (let i = 0; i < total; i++) {
+            const file = files[i];
+            if (file.type !== 'application/pdf') {
+                continue; 
+            }
+            
+            progressStatus.innerText = `PDF 분석 중... (${i + 1}/${total}) - ${file.name}`;
+            const percentage = Math.round(((i) / total) * 100);
+            progressBar.style.width = `${percentage}%`;
+            progressPercent.innerText = `${percentage}%`;
+
+            try {
+                const text = await extractTextFromPDF(file);
+                const extractedData = parseDeclarationInfo(text);
+                
+                // 파일명에서 "43632"로 시작하고 "M"으로 끝나는 번호 추출 시도
+                let declNo = '';
+                const nameMatch = file.name.match(/43632[a-zA-Z0-9]*M/i);
+                if (nameMatch) {
+                    declNo = nameMatch[0]; 
+                } else {
+                    declNo = extractedData.declNo;
+                }
+                
+                let blNo = extractedData.blNo;
+                
+                fileList.push({
+                    id: crypto.randomUUID(),
+                    file: file,
+                    originalName: file.name,
+                    declNo: declNo,
+                    blNo: blNo,
+                    status: evaluateStatus(declNo, blNo)
+                });
+            } catch (err) {
+                console.error(err);
+                fileList.push({
+                    id: crypto.randomUUID(),
+                    file: file,
+                    originalName: file.name,
+                    declNo: '',
+                    blNo: '',
+                    status: 'failed'
+                });
+            }
+        }
+        
+        progressBar.style.width = '100%';
+        progressPercent.innerText = '100%';
+        progressStatus.innerText = '분석 완료!';
+        
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            isProcessing = false;
+            document.getElementById('pdfUpload').disabled = false;
+            document.getElementById('dropzone').style.pointerEvents = 'auto';
+            document.getElementById('pdfUpload').value = ''; 
+            
+            updateDashboard();
+            renderPreviewTable();
+            updateGroupDashboard();
+        }, 800);
+    }
+
+    // Extract text with coordinates and sort them to form coherent layout text
+    async function extractTextFromPDF(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = "";
+        
+        const pagesToScan = Math.min(pdf.numPages, 2);
+        for (let pageNum = 1; pageNum <= pagesToScan; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            
+            const items = textContent.items.map(item => ({
+                str: item.str,
+                x: item.transform[4],
+                y: item.transform[5]
+            }));
+            
+            items.sort((a, b) => {
+                if (Math.abs(a.y - b.y) < 4) {
+                    return a.x - b.x;
+                }
+                return b.y - a.y;
+            });
+            
+            const pageText = items.map(item => item.str).join(" ");
+            fullText += pageText + "\n";
+        }
+        return fullText;
+    }
+
+    // Custom regex parsing using whitespace removed text
+    function parseDeclarationInfo(text) {
+        let declNo = '';
+        let blNo = '';
+
+        const debugTextarea = document.getElementById('debugTextarea');
+        if (debugTextarea) {
+            debugTextarea.value = text + "\n=========================================\n" + debugTextarea.value;
+        }
+
+        const cleanText = text.replace(/\s+/g, '');
+
+        // 1. 수입신고번호 패턴 검출
+        const declPattern1 = /([0-9]{5})-?([0-9]{2})-?([0-9]{7})/;
+        const declMatch1 = cleanText.match(declPattern1);
+        if (declMatch1) {
+            declNo = `${declMatch1[1]}-${declMatch1[2]}-${declMatch1[3]}`;
+        }
+
+        // 2. B/L 번호 패턴 검출
+        const blPattern1 = /(?:BL\(AWB\)번호|BL번호|BLAWB번호)[\s:：]*([A-Z0-9\-_/]{4,})/i;
+        const blMatch1 = cleanText.match(blPattern1);
+        if (blMatch1 && blMatch1[1]) {
+            blNo = blMatch1[1];
+        } else {
+            const blPattern2 = /(?:B\/L\s*\(AWB\)\s*번\s*호|B\/L\s*번\s*호|B\/L\s*AWB\s*번호)[\s:：]*([A-Z0-9\-_/]{4,})/i;
+            const blMatch2 = text.match(blPattern2);
+            if (blMatch2 && blMatch2[1]) {
+                blNo = blMatch2[1].trim();
+            } else {
+                const blPattern3 = /(?:B\/L|AWB)[\s:：]*([A-Z0-9\-_/]{5,})/i;
+                const blMatch3 = cleanText.match(blPattern3);
+                if (blMatch3 && blMatch3[1]) {
+                    blNo = blMatch3[1];
+                }
+            }
+        }
+
+        if (blNo) {
+            blNo = blNo.trim();
+            if (blNo.length > 25 || /^[0-9가-힣\s]+$/.test(blNo) && blNo.length > 15) {
+                blNo = '';
+            }
+        }
+
+        return { declNo, blNo };
+    }
+
+    function formatDeclNo(str) {
+        const num = str.replace(/[^0-9]/g, '');
+        if (num.length === 14) {
+            return `${num.slice(0, 5)}-${num.slice(5, 7)}-${num.slice(7)}`;
+        }
+        return str.trim();
+    }
+
+    function evaluateStatus(declNo, blNo) {
+        if (declNo && blNo) return 'success';
+        if (declNo || blNo) return 'warning';
+        return 'failed';
+    }
+
+    function updateDashboard() {
+        const statsDashboard = document.getElementById('statsDashboard');
+        const previewContainer = document.getElementById('previewContainer');
+        
+        if (fileList.length === 0) {
+            statsDashboard.style.display = 'none';
+            previewContainer.style.display = 'none';
+            return;
+        }
+        
+        statsDashboard.style.display = 'grid';
+        previewContainer.style.display = 'flex';
+        
+        const total = fileList.length;
+        const success = fileList.filter(f => f.status === 'success').length;
+        const warning = fileList.filter(f => f.status === 'warning').length;
+        const failed = fileList.filter(f => f.status === 'failed').length;
+        
+        document.getElementById('statTotal').innerText = total;
+        document.getElementById('statSuccess').innerText = success;
+        document.getElementById('statWarning').innerText = warning;
+        document.getElementById('statFailed').innerText = failed;
+    }
+
+    // Render Preview Table Grid
+    function renderPreviewTable() {
+        const tbody = document.getElementById('previewBody');
+        tbody.innerHTML = '';
+        
+        fileList.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            
+            const tdIndex = document.createElement('td');
+            tdIndex.className = 'col-index';
+            tdIndex.innerText = index + 1;
+            tr.appendChild(tdIndex);
+            
+            const tdOriginal = document.createElement('td');
+            tdOriginal.className = 'col-original';
+            tdOriginal.innerText = item.originalName;
+            tr.appendChild(tdOriginal);
+            
+            const tdStatus = document.createElement('td');
+            tdStatus.className = 'col-status';
+            let badgeClass = 'danger';
+            let badgeLabel = '미식별';
+            let badgeIcon = 'x-circle';
+            
+            if (item.status === 'success') {
+                badgeClass = 'success';
+                badgeLabel = '매칭완료';
+                badgeIcon = 'check-circle-2';
+            } else if (item.status === 'warning') {
+                badgeClass = 'warning';
+                badgeLabel = '일부미흡';
+                badgeIcon = 'alert-triangle';
+            }
+            
+            tdStatus.innerHTML = `<span class="badge ${badgeClass}"><i data-lucide="${badgeIcon}" style="width: 14px; height: 14px;"></i> ${badgeLabel}</span>`;
+            tr.appendChild(tdStatus);
+            
+            const tdDecl = document.createElement('td');
+            tdDecl.className = 'col-editable';
+            tdDecl.innerHTML = `
+                <div class="editable-cell" onclick="startEditing(this, '${item.id}', 'declNo')">
+                    <span>${item.declNo || '<span style="color: var(--text-muted); font-style: italic;">미지정</span>'}</span>
+                    <i data-lucide="edit-3" class="edit-icon" style="width: 14px; height: 14px;"></i>
+                </div>
+            `;
+            tr.appendChild(tdDecl);
+            
+            const tdBL = document.createElement('td');
+            tdBL.className = 'col-editable';
+            tdBL.innerHTML = `
+                <div class="editable-cell" onclick="startEditing(this, '${item.id}', 'blNo')">
+                    <span>${item.blNo || '<span style="color: var(--text-muted); font-style: italic;">미지정</span>'}</span>
+                    <i data-lucide="edit-3" class="edit-icon" style="width: 14px; height: 14px;"></i>
+                </div>
+            `;
+            tr.appendChild(tdBL);
+            
+            const tdResult = document.createElement('td');
+            tdResult.className = 'col-result';
+            tdResult.innerText = generateTargetFileName(item);
+            tr.appendChild(tdResult);
+            
+            const tdAction = document.createElement('td');
+            tdAction.className = 'col-action';
+            tdAction.innerHTML = `
+                <button class="btn-delete" onclick="deleteRow('${item.id}')" title="이 파일 제외">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                </button>
+            `;
+            tr.appendChild(tdAction);
+            
+            tbody.appendChild(tr);
+        });
+        
+        lucide.createIcons();
+    }
+
+    // Generate output filename based on current status
+    function generateTargetFileName(item) {
+        const cleanOriginal = item.originalName.replace(/\.[^/.]+$/, ""); 
+        let part1 = '';
+        if (item.declNo) {
+            if (/43632[a-zA-Z0-9]*M/i.test(item.declNo)) {
+                part1 = item.declNo.trim();
+            } else {
+                part1 = item.declNo.replace(/[^0-9]/g, '');
+            }
+        }
+        let part2 = item.blNo ? item.blNo.trim() : '';
+        
+        if (part1 && part2) {
+            return `${part1}_${part2}.pdf`;
+        } else if (part1) {
+            return `${part1}_[BL누락].pdf`;
+        } else if (part2) {
+            return `[신고번호누락]_${part2}.pdf`;
+        } else {
+            return `${cleanOriginal}_[변환실패].pdf`;
+        }
+    }
+
+    // Direct Inline Cell Edit Handler
+    function startEditing(element, id, field) {
+        if (element.querySelector('input')) return;
+        
+        const fileObj = fileList.find(f => f.id === id);
+        const currentVal = fileObj[field] || '';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentVal;
+        input.className = 'edit-input';
+        
+        const container = element.parentElement;
+        element.style.display = 'none';
+        container.appendChild(input);
+        input.focus();
+        
+        const finishEditing = () => {
+            const newVal = input.value.trim();
+            let formattedVal = newVal;
+            
+            if (field === 'declNo' && newVal && !/43632[a-zA-Z0-9]*M/i.test(newVal)) {
+                formattedVal = formatDeclNo(newVal);
+            }
+            
+            fileObj[field] = formattedVal;
+            fileObj.status = evaluateStatus(fileObj.declNo, fileObj.blNo);
+            
+            input.remove();
+            element.style.display = 'flex';
+            
+            updateDashboard();
+            renderPreviewTable();
+            updateGroupDashboard();
+        };
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                finishEditing();
+            } else if (e.key === 'Escape') {
+                input.remove();
+                element.style.display = 'flex';
+            }
+        });
+
+        input.addEventListener('blur', finishEditing);
+    }
+
+    // Delete single file row
+    function deleteRow(id) {
+        fileList = fileList.filter(f => f.id !== id);
+        updateDashboard();
+        renderPreviewTable();
+        updateGroupDashboard();
+    }
+
+    // Reset Application State
+    function resetApp() {
+        if (confirm("정말로 모든 목록을 비우고 초기화하시겠습니까?")) {
+            fileList = [];
+            updateDashboard();
+            renderPreviewTable();
+            updateGroupDashboard();
+            document.getElementById('pdfUpload').value = '';
+            document.getElementById('debugTextarea').value = '';
+        }
+    }
+
+    // Sort files alphabetically by original name
+    let sortAsc = true;
+    function sortFiles(criteria) {
+        if (criteria === 'name') {
+            fileList.sort((a, b) => {
+                const nameA = a.originalName.toUpperCase();
+                const nameB = b.originalName.toUpperCase();
+                return sortAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+            });
+            sortAsc = !sortAsc;
+            renderPreviewTable();
+            updateGroupDashboard();
+        }
+    }
+
+    // Split files into groups dynamically based on settingGroupSize
+    function getFileGroups() {
+        const settings = getMailSettings();
+        const size = settings.groupSize;
+        const groups = [];
+        for (let i = 0; i < fileList.length; i += size) {
+            groups.push(fileList.slice(i, i + size));
+        }
+        return groups;
+    }
+
+    // Get current Mail configurations
+    function getMailSettings() {
+        let gSize = parseInt(document.getElementById('settingGroupSize').value, 10);
+        if (isNaN(gSize) || gSize < 1) gSize = DEFAULT_SETTINGS.groupSize;
+
+        return {
+            recipient: document.getElementById('settingRecipient').value.trim() || DEFAULT_SETTINGS.recipient,
+            clientId: document.getElementById('settingClientId').value.trim(),
+            apiKey: document.getElementById('settingApiKey').value.trim(),
+            subjectTemplate: document.getElementById('settingSubject').value.trim() || DEFAULT_SETTINGS.subjectTemplate,
+            groupSize: gSize,
+            bodyStart: document.getElementById('settingBodyStart').value,
+            bodyEnd: document.getElementById('settingBodyEnd').value
+        };
+    }
+
+    // Generate Subject and Body Text for a group
+    function generateMailText(group, index, settings) {
+        const firstBL = group[0].blNo || 'B-L미식별';
+        const count = group.length - 1;
+
+        let subject = settings.subjectTemplate
+            .replace('{first_bl}', firstBL)
+            .replace('{count}', count);
+
+        // Build B/L sequence list for body content
+        const blList = group.map((item, idx) => `${idx + 1}. ${item.blNo || '[B/L 번호 미지정]'}`).join('\n');
+        
+        let body = `${settings.bodyStart}\n\n${blList}\n\n${settings.bodyEnd}`;
+        
+        return { subject, body };
+    }
+
+    // Render 6-Group Sending Panel Cards
+    function updateGroupDashboard() {
+        const container = document.getElementById('groupDashboardContainer');
+        const dashboard = document.getElementById('groupDashboard');
+        
+        if (fileList.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        dashboard.innerHTML = '';
+
+        const groups = getFileGroups();
+        const settings = getMailSettings();
+
+        groups.forEach((group, index) => {
+            const card = document.createElement('div');
+            card.className = 'group-card';
+
+            const startIdx = index * settings.groupSize + 1;
+            const endIdx = startIdx + group.length - 1;
+
+            // Files item rendering
+            let fileListHtml = '';
+            group.forEach((item) => {
+                const targetName = generateTargetFileName(item);
+                fileListHtml += `
+                    <div class="group-file-item">
+                        <span title="${targetName}">${targetName}</span>
+                        <span style="font-size: 10px; font-weight: bold; color: ${item.blNo ? 'var(--success)' : 'var(--danger)'}">
+                            ${item.blNo || 'B/L 누락'}
+                        </span>
+                    </div>
+                `;
+            });
+
+            card.innerHTML = `
+                <div class="group-header">
+                    <div class="group-title">
+                        <i data-lucide="package" style="width: 16px; height: 16px;"></i> ${index + 1}그룹 (${startIdx}~${endIdx}번)
+                    </div>
+                    <span class="group-badge">${group.length}개 파일</span>
+                </div>
+                <div class="group-files">
+                    ${fileListHtml}
+                </div>
+                <div class="group-actions">
+                    <button class="btn btn-primary" id="btnSendGroup-${index}" onclick="sendGroupMail(${index})" ${isAuthorized ? '' : 'disabled'}>
+                        <i data-lucide="mail"></i> 메일 발송
+                    </button>
+                    <button class="btn btn-secondary" onclick="copyMailBodyToClipboard(${index})" title="메일 본문 복사">
+                        <i data-lucide="copy"></i>
+                    </button>
+                </div>
+            `;
+            dashboard.appendChild(card);
+        });
+
+        lucide.createIcons();
+    }
+
+    // Clipboard Copy for Mail Body content
+    function copyMailBodyToClipboard(index) {
+        const groups = getFileGroups();
+        const group = groups[index];
+        if (!group) return;
+
+        const settings = getMailSettings();
+        const { body } = generateMailText(group, index, settings);
+
+        navigator.clipboard.writeText(body).then(() => {
+            showToast(`${index + 1}그룹 메일 본문이 클립보드에 복사되었습니다!`);
+        }).catch(err => {
+            console.error('클립보드 복사 실패:', err);
+            alert('클립보드 복사 중 오류가 발생했습니다.');
+        });
+    }
+
+    // Debug Panel Toggle
+    function toggleDebugConsole() {
+        const area = document.getElementById('debugConsoleArea');
+        if (area.style.display === 'none') {
+            area.style.display = 'block';
+        } else {
+            area.style.display = 'none';
+        }
+    }
+
+    // Guide Accordion Toggle
+    function toggleAccordion(element) {
+        const content = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        
+        if (content.style.display === 'block') {
+            content.style.display = 'none';
+            icon.setAttribute('data-lucide', 'chevron-down');
+        } else {
+            content.style.display = 'block';
+            icon.setAttribute('data-lucide', 'chevron-up');
+        }
+        lucide.createIcons();
+    }
+
+    /* =========================================================================
+       GOOGLE GAPI & GIS (OAUTH 2.0) Gmail API INTEGRATION
+       ========================================================================= */
+
+    // Load Google API libraries
+    function gapiLoaded() {
+        gapi.load('client', initGapi);
+    }
+
+    function gisLoaded() {
+        gisInited = true;
+        initGapiAndGis();
+    }
+
+    async function initGapi() {
+        gapiInited = true;
+        initGapiAndGis();
+    }
+
+    // Initialize Clients when GAPI, GIS and settings are loaded
+    async function initGapiAndGis() {
+        const settings = getMailSettings();
+        if (!settings.clientId || !settings.apiKey) {
+            return;
+        }
+
+        try {
+            if (gapiInited) {
+                await gapi.client.init({
+                    apiKey: settings.apiKey,
+                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest'],
+                });
+            }
+
+            if (gisInited) {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: settings.clientId,
+                    scope: 'https://www.googleapis.com/auth/gmail.send',
+                    callback: async (resp) => {
+                        if (resp.error !== undefined) {
+                            showToast('구글 로그인 중 에러 발생: ' + resp.error);
+                            throw resp;
+                        }
+                        isAuthorized = true;
+                        updateAuthStatusUI();
+                        updateGroupDashboard();
+                        showToast('구글 Gmail 연동에 성공했습니다!');
+                    },
+                });
+            }
+            
+            // Try to restore session if access token exists
+            const savedToken = localStorage.getItem('gapi_access_token');
+            if (savedToken) {
+                gapi.client.setToken({ access_token: savedToken });
+                isAuthorized = true;
+                updateAuthStatusUI();
+                updateGroupDashboard();
+            }
+        } catch (err) {
+            console.error('Google API Init Error:', err);
+        }
+    }
+
+    function updateAuthStatusUI() {
+        const status = document.getElementById('gapiAuthStatus');
+        const authBtn = document.getElementById('btnGoogleAuth');
+        const batchBtn = document.getElementById('btnBatchSend');
+
+        if (isAuthorized) {
+            status.innerText = '인증 완료';
+            status.style.color = 'var(--success)';
+            authBtn.innerHTML = '<i data-lucide="log-out" style="width: 14px; height: 14px;"></i> 인증 로그아웃';
+            authBtn.className = 'btn btn-secondary';
+            if (batchBtn) batchBtn.disabled = false;
+        } else {
+            status.innerText = '미연동';
+            status.style.color = 'var(--danger)';
+            authBtn.innerHTML = '<i data-lucide="log-in" style="width: 14px; height: 14px;"></i> 구글 계정 인증하기';
+            authBtn.className = 'btn btn-primary';
+            if (batchBtn) batchBtn.disabled = true;
+        }
+        lucide.createIcons();
+    }
+
+    // Trigger Google Sign-In and Scopes Approval popup
+    function handleAuthClick() {
+        const settings = getMailSettings();
+        if (!settings.clientId || !settings.apiKey) {
+            alert('설정 패널에 구글 Client ID와 API Key를 먼저 정확히 기재해 주세요.');
+            return;
+        }
+
+        if (!isAuthorized) {
+            // Trigger login popup
+            if (tokenClient) {
+                // Request Access Token
+                tokenClient.callback = async (resp) => {
+                    if (resp.error !== undefined) {
+                        showToast('인증 에러: ' + resp.error);
+                        return;
+                    }
+                    localStorage.setItem('gapi_access_token', resp.access_token);
+                    isAuthorized = true;
+                    updateAuthStatusUI();
+                    updateGroupDashboard();
+                    showToast('구글 Gmail 인증에 성공했습니다!');
+                };
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                // Re-init
+                initGapiAndGis().then(() => {
+                    if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
+                });
+            }
+        } else {
+            // Logout / Clear session
+            gapi.client.setToken(null);
+            localStorage.removeItem('gapi_access_token');
+            isAuthorized = false;
+            updateAuthStatusUI();
+            updateGroupDashboard();
+            showToast('연동이 로그아웃되었습니다.');
+        }
+    }
+
+    // Send single group (6 files) automatically via Gmail API
+    async function sendGroupMail(index) {
+        if (!isAuthorized) {
+            alert('구글 계정 인증을 완료하셔야 자동 전송이 가능합니다.');
+            return;
+        }
+
+        const groups = getFileGroups();
+        const group = groups[index];
+        if (!group) return;
+
+        const sendBtn = document.getElementById(`btnSendGroup-${index}`);
+        const originalHtml = sendBtn.innerHTML;
+        
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width: 14px; height: 14px;"></i> 발송 중...';
+        lucide.createIcons();
+
+        try {
+            const settings = getMailSettings();
+            const { subject, body } = generateMailText(group, index, settings);
+
+            // 1. Build MIME structure (asynchronous)
+            const mimeMessage = await buildMimeMessage(settings.recipient, subject, body, group);
+            
+            // 2. Encode to base64url format
+            const base64SafeMessage = btoa(unescape(encodeURIComponent(mimeMessage)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+
+            // 3. Send using Gmail API
+            await gapi.client.gmail.users.messages.send({
+                userId: 'me',
+                resource: {
+                    raw: base64SafeMessage
+                }
+            });
+
+            sendBtn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;"></i> 발송 완료';
+            sendBtn.className = 'btn btn-secondary';
+            showToast(`🎉 ${index + 1}그룹 메일이 wsinc01@gmail.com으로 완전 전송 완료되었습니다!`);
+        } catch (err) {
+            console.error('Gmail 발송 실패:', err);
+            alert('메일 전송에 실패했습니다. API 설정 및 구글 권한을 확인해 주세요.\n에러: ' + (err.result?.error?.message || err.message));
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = originalHtml;
+            lucide.createIcons();
+        }
+    }
+
+    // Send all groups sequentially using Gmail API (Batch send)
+    async function sendAllGroupsMail() {
+        if (!isAuthorized) {
+            alert('구글 계정 인증을 완료하셔야 일괄 발송이 가능합니다.');
+            return;
+        }
+
+        const groups = getFileGroups();
+        if (groups.length === 0) return;
+
+        const confirmMsg = `총 ${groups.length}개의 메일(개별 파일 총 ${fileList.length}개 첨부)을 지정된 수신처로 자동 일괄 발송합니다. 계속하시겠습니까?`;
+        if (!confirm(confirmMsg)) return;
+
+        const batchBtn = document.getElementById('btnBatchSend');
+        batchBtn.disabled = true;
+        batchBtn.innerHTML = '<i data-lucide="loader" class="animate-spin" style="width: 14px; height: 14px;"></i> 일괄 발송 중...';
+        lucide.createIcons();
+
+        isProcessing = true;
+
+        try {
+            const settings = getMailSettings();
+            for (let i = 0; i < groups.length; i++) {
+                showToast(`[일괄] ${i + 1}/${groups.length} 그룹 자동 메일 전송 중...`);
+                const group = groups[i];
+
+                const { subject, body } = generateMailText(group, i, settings);
+                const mimeMessage = await buildMimeMessage(settings.recipient, subject, body, group);
+                
+                const base64SafeMessage = btoa(unescape(encodeURIComponent(mimeMessage)))
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=+$/, '');
+
+                await gapi.client.gmail.users.messages.send({
+                    userId: 'me',
+                    resource: {
+                        raw: base64SafeMessage
+                    }
+                });
+
+                // Short sleep between requests to comply with rate limits (500ms)
+                if (i < groups.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+
+            showToast('🎉 모든 그룹의 이메일 전송이 완벽하게 완료되었습니다!');
+            updateGroupDashboard(); // Refresh buttons state
+        } catch (err) {
+            console.error('일괄 발송 에러:', err);
+            alert('일괄 발송 도중 오류가 발생했습니다: ' + (err.result?.error?.message || err.message));
+        } finally {
+            isProcessing = false;
+            batchBtn.disabled = false;
+            batchBtn.innerHTML = '<i data-lucide="mail-check" style="width: 14px; height: 14px;"></i> 일괄 발송';
+            lucide.createIcons();
+        }
+    }
+
+    // Build RFC 2822 Multipart MIME Message inside browser javascript (비동기 순차 처리로 꼬임 방지)
+    async function buildMimeMessage(recipient, subject, bodyText, files) {
+        const boundary = "boundary_" + crypto.randomUUID();
+        const nl = "\r\n";
+        
+        let message = [];
+        
+        // Headers
+        message.push(`To: ${recipient}`);
+        message.push(`Subject: =?UTF-8?B?${b64EncodeUnicode(subject)}?=`);
+        message.push("MIME-Version: 1.0");
+        message.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+        message.push("");
+        
+        // Body Text part
+        message.push(`--${boundary}`);
+        message.push("Content-Type: text/plain; charset=UTF-8");
+        message.push("Content-Transfer-Encoding: base64");
+        message.push("");
+        message.push(b64EncodeUnicode(bodyText));
+        message.push("");
+        
+        for (const item of files) {
+            const targetName = generateTargetFileName(item);
+            const arrayBuffer = await item.file.arrayBuffer();
+            
+            // Binary byte-by-byte conversion to base64
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = "";
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            const base64Data = btoa(binary);
+            
+            // Attachment Part
+            message.push(`--${boundary}`);
+            message.push(`Content-Type: application/pdf; name="${targetName}"`);
+            message.push("Content-Transfer-Encoding: base64");
+            message.push(`Content-Disposition: attachment; filename="${targetName}"`);
+            message.push("");
+            
+            // Break Base64 string into 76-character width chunks (MIME standard compliance)
+            message.push(base64Data.replace(/(.{76})/g, "$1" + nl));
+            message.push("");
+        }
+        
+        message.push(`--${boundary}--`);
+        return message.join(nl);
+    }
+
+    // Unicode Base64 Helper
+    function b64EncodeUnicode(str) {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+            return String.fromCharCode(parseInt(p1, 16));
+        }));
+    }
+</script>
+
+</body>
+</html>
