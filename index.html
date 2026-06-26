@@ -2073,11 +2073,6 @@
 
     // Send all groups sequentially using Gmail API (Batch send)
     async function sendAllGroupsMail() {
-        if (!isAuthorized) {
-            alert('구글 계정 인증을 완료하셔야 일괄 발송이 가능합니다.');
-            return;
-        }
-
         const groups = getFileGroups();
         if (groups.length === 0) return;
 
@@ -2092,6 +2087,9 @@
         isProcessing = true;
 
         try {
+            // 발송 전 자동 인증 확보
+            await ensureAuthorized();
+
             const settings = getMailSettings();
             for (let i = 0; i < groups.length; i++) {
                 showToast(`[일괄] ${i + 1}/${groups.length} 그룹 자동 메일 전송 중...`);
@@ -2122,7 +2120,9 @@
             updateGroupDashboard(); // Refresh buttons state
         } catch (err) {
             console.error('일괄 발송 에러:', err);
-            alert('일괄 발송 도중 오류가 발생했습니다: ' + (err.result?.error?.message || err.message));
+            if (err.message !== 'Missing credentials' && err.message !== 'GAPI init failed') {
+                alert('일괄 발송 도중 오류가 발생했습니다: ' + (err.result?.error?.message || err.message));
+            }
         } finally {
             isProcessing = false;
             batchBtn.disabled = false;
