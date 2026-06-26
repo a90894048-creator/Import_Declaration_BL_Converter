@@ -1941,7 +1941,6 @@
         if (batchBtn) {
             batchBtn.disabled = (fileList.length === 0 || isProcessing);
         }
-        }
         
         lucide.createIcons();
     }
@@ -1990,6 +1989,26 @@
 
             tokenClient.requestAccessToken({ prompt: 'consent' });
         });
+    }
+
+    // 수동 연동하기 버튼 클릭 시 작동하는 함수
+    function handleAuthClick() {
+        if (isAuthorized) {
+            // 연동 로그아웃 처리
+            gapi.client.setToken(null);
+            localStorage.removeItem('gapi_access_token');
+            isAuthorized = false;
+            updateAuthStatusUI();
+            updateGroupDashboard();
+            showToast('연동이 로그아웃되었습니다.');
+        } else {
+            // 수동 연동 시작
+            ensureAuthorized().then(() => {
+                showToast('구글 연동 성공!');
+            }).catch(err => {
+                console.error('수동 연동 실패:', err);
+            });
+        }
     }
 
     // Send single group (6 files) automatically via Gmail API
