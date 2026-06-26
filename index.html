@@ -1864,6 +1864,7 @@
                             showToast('구글 로그인 중 에러 발생: ' + resp.error);
                             throw resp;
                         }
+                        localStorage.setItem('gapi_access_token', resp.access_token);
                         isAuthorized = true;
                         updateAuthStatusUI();
                         updateGroupDashboard();
@@ -1872,16 +1873,50 @@
                 });
             }
             
-            // Try to restore session if access token exists
+            // Try to restore session if access token exists (만료 검증 및 백그라운드 자동 갱신 추가)
             const savedToken = localStorage.getItem('gapi_access_token');
             if (savedToken) {
                 gapi.client.setToken({ access_token: savedToken });
-                isAuthorized = true;
-                updateAuthStatusUI();
-                updateGroupDashboard();
+                try {
+                    await gapi.client.gmail.users.getProfile({ userId: 'me' });
+                    isAuthorized = true;
+                    updateAuthStatusUI();
+                    updateGroupDashboard();
+                } catch (e) {
+                    console.log("기존 구글 인증 토큰 만료. 백그라운드 자동 갱신을 시도합니다...");
+                    attemptSilentRefresh();
+                }
             }
         } catch (err) {
             console.error('Google API Init Error:', err);
+        }
+    }
+
+    // 사용자 개입(팝업) 없이 백그라운드에서 조용히 토큰을 연장하는 함수
+    function attemptSilentRefresh() {
+        if (!tokenClient) return;
+        
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) {
+                console.warn('구글 로그인 자동 연장 실패:', resp.error);
+                gapi.client.setToken(null);
+                localStorage.removeItem('gapi_access_token');
+                isAuthorized = false;
+                updateAuthStatusUI();
+                updateGroupDashboard();
+                return;
+            }
+            localStorage.setItem('gapi_access_token', resp.access_token);
+            isAuthorized = true;
+            updateAuthStatusUI();
+            updateGroupDashboard();
+            console.log('구글 로그인 세션이 자동으로 연장되었습니다.');
+        };
+        
+        try {
+            tokenClient.requestAccessToken({ prompt: 'none' });
+        } catch (err) {
+            console.error('Silent refresh request failed:', err);
         }
     }
 
