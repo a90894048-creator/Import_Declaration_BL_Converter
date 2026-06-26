@@ -1864,7 +1864,9 @@
                             showToast('구글 로그인 중 에러 발생: ' + resp.error);
                             throw resp;
                         }
+                        const expiryTime = Date.now() + (3500 * 1000); // 58분 뒤 만료로 간주
                         localStorage.setItem('gapi_access_token', resp.access_token);
+                        localStorage.setItem('gapi_token_expiry', expiryTime);
                         isAuthorized = true;
                         updateAuthStatusUI();
                         updateGroupDashboard();
@@ -1873,50 +1875,24 @@
                 });
             }
             
-            // Try to restore session if access token exists (만료 검증 및 백그라운드 자동 갱신 추가)
+            // Try to restore session if access token is still valid (로컬 만료 타임스탬프 기반 1초 복구)
             const savedToken = localStorage.getItem('gapi_access_token');
-            if (savedToken) {
+            const expiry = localStorage.getItem('gapi_token_expiry');
+            
+            if (savedToken && expiry && Date.now() < parseInt(expiry, 10)) {
                 gapi.client.setToken({ access_token: savedToken });
-                try {
-                    await gapi.client.gmail.users.getProfile({ userId: 'me' });
-                    isAuthorized = true;
-                    updateAuthStatusUI();
-                    updateGroupDashboard();
-                } catch (e) {
-                    console.log("기존 구글 인증 토큰 만료. 백그라운드 자동 갱신을 시도합니다...");
-                    attemptSilentRefresh();
-                }
-            }
-        } catch (err) {
-            console.error('Google API Init Error:', err);
-        }
-    }
-
-    // 사용자 개입(팝업) 없이 백그라운드에서 조용히 토큰을 연장하는 함수
-    function attemptSilentRefresh() {
-        if (!tokenClient) return;
-        
-        tokenClient.callback = async (resp) => {
-            if (resp.error !== undefined) {
-                console.warn('구글 로그인 자동 연장 실패:', resp.error);
+                isAuthorized = true;
+                updateAuthStatusUI();
+                updateGroupDashboard();
+            } else {
+                // 만료된 경우 토큰 세션 비우기
                 gapi.client.setToken(null);
-                localStorage.removeItem('gapi_access_token');
                 isAuthorized = false;
                 updateAuthStatusUI();
                 updateGroupDashboard();
-                return;
             }
-            localStorage.setItem('gapi_access_token', resp.access_token);
-            isAuthorized = true;
-            updateAuthStatusUI();
-            updateGroupDashboard();
-            console.log('구글 로그인 세션이 자동으로 연장되었습니다.');
-        };
-        
-        try {
-            tokenClient.requestAccessToken({ prompt: 'none' });
         } catch (err) {
-            console.error('Silent refresh request failed:', err);
+            console.error('Google API Init Error:', err);
         }
     }
 
@@ -1945,17 +1921,17 @@
         lucide.createIcons();
     }
 
-    // 발송 시점에 구글 인증 상태를 검증하고, 만료시 자동으로 로그인창을 띄워 연속 실행을 보장하는 헬퍼
+    // 발송 시점에 구글 인증 상태를 검증하고, 만료시 자동으로 로그인창을 띄워 연속 실행을 보장하는 헬퍼 (로컬 타임 검사로 성능 최적화)
     function ensureAuthorized() {
         return new Promise(async (resolve, reject) => {
-            if (isAuthorized) {
-                try {
-                    await gapi.client.gmail.users.getProfile({ userId: 'me' });
-                    resolve(true);
-                    return;
-                } catch (e) {
-                    isAuthorized = false;
-                }
+            const savedToken = localStorage.getItem('gapi_access_token');
+            const expiry = localStorage.getItem('gapi_token_expiry');
+
+            // 로컬에 만료 시각이 넉넉히 남아 있다면 구글 서버 통신 없이 즉시 통과
+            if (isAuthorized && savedToken && expiry && Date.now() < parseInt(expiry, 10)) {
+                gapi.client.setToken({ access_token: savedToken });
+                resolve(true);
+                return;
             }
             
             const settings = getMailSettings();
@@ -1980,7 +1956,9 @@
                     reject(new Error(resp.error));
                     return;
                 }
+                const expiryTime = Date.now() + (3500 * 1000); // 58분
                 localStorage.setItem('gapi_access_token', resp.access_token);
+                localStorage.setItem('gapi_token_expiry', expiryTime);
                 isAuthorized = true;
                 updateAuthStatusUI();
                 updateGroupDashboard();
