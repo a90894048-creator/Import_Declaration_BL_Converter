@@ -1412,46 +1412,53 @@
             declNo = `${declMatch1[1]}-${declMatch1[2]}-${declMatch1[3]}`;
         }
 
-        // 2. HBL 번호 패턴 검출 (신고서 4번 영역 B/L(AWB)번호 최우선 추출)
-        const hblRegexes = [
-            /(?:④|4\.)?\s*B\s*\/?\s*L\s*\(\s*A\s*W\s*B\s*\)\s*번\s*호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
-            /(?:④|4\.)?\s*B\/L\s*AWB\s*번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
-            /(?:④|4\.)?\s*B\/L\s*번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
-            /B\/L\s*\(AWB\)\s*번\s*호[\s:：]*([A-Z0-9\-_/]{5,20})/i
-        ];
+        // 2. MASTER B/L 번호 사전 탐색 (HBL 오인 방지용)
+        let masterBl = '';
+        const masterMatch = cleanText.match(/(?:MASTERBL번호|MASTERB\/L번호|마스터BL번호|MASTERBL|MASTERB\/L)(?:번호)?[\s:：]*([A-Z0-9\-_/]{5,25})/i);
+        if (masterMatch && masterMatch[1]) {
+            masterBl = masterMatch[1];
+        }
 
-        const cleanHblRegexes = [
-            /(?:④|4\.)?BL\(AWB\)번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
-            /(?:④|4\.)?BLAWB번호[\s:：]*([A-Z0-9\-_/]{5,20})/i,
-            /(?:④|4\.)?BL번호[\s:：]*([A-Z0-9\-_/]{5,20})/i
-        ];
-
-        // 2-1. 공백 제거 텍스트에서 4번 B/L번호 뒤의 문자열 1순위 탐색
-        for (const regex of cleanHblRegexes) {
-            const match = cleanText.match(regex);
-            if (match && match[1]) {
-                blNo = match[1];
-                break;
+        // 3. HBL 번호 패턴 검출 (1순위: 징수형태 헤더와의 수입신고필증 가로정렬 매칭 구조 이용)
+        // 4B/L(AWB)번호5화물관리번호8반입일9징수형태[HBL번호] 구조
+        const hblPattern1 = /BL\(AWB\)번호.*?징수형태([A-Z0-9\-_/]{5,25})/i;
+        const hblMatch1 = cleanText.match(hblPattern1);
+        if (hblMatch1 && hblMatch1[1]) {
+            const candidate = hblMatch1[1];
+            if (candidate !== masterBl) {
+                blNo = candidate;
             }
         }
 
-        // 2-2. 원본 텍스트에서 레이아웃 기준 2순위 탐색
+        // 4. 차선책 2순위 (만약 위 징수형태 패턴이 깨졌을 경우)
         if (!blNo) {
+            const hblRegexes = [
+                /(?:④|4\.)?\s*B\s*\/?\s*L\s*\(\s*A\s*W\s*B\s*\)\s*번\s*호[\s:：]*([A-Z0-9\-_/]{5,25})/i,
+                /(?:④|4\.)?\s*B\/L\s*AWB\s*번호[\s:：]*([A-Z0-9\-_/]{5,25})/i,
+                /(?:④|4\.)?\s*B\/L\s*번호[\s:：]*([A-Z0-9\-_/]{5,25})/i
+            ];
+            
             for (const regex of hblRegexes) {
                 const match = text.match(regex);
                 if (match && match[1]) {
-                    blNo = match[1].trim();
-                    break;
+                    const candidate = match[1].trim();
+                    if (candidate !== masterBl) {
+                        blNo = candidate;
+                        break;
+                    }
                 }
             }
         }
 
-        // 2-3. 매칭이 여전히 없으면 일반 B/L 패턴 검출 3순위 탐색
+        // 5. 차선책 3순위 (단순 B/L|AWB 패턴)
         if (!blNo) {
-            const blPattern3 = /(?:B\/L|AWB)[\s:：]*([A-Z0-9\-_/]{5,20})/i;
+            const blPattern3 = /(?:B\/L|AWB)[\s:：]*([A-Z0-9\-_/]{5,25})/i;
             const blMatch3 = cleanText.match(blPattern3);
             if (blMatch3 && blMatch3[1]) {
-                blNo = blMatch3[1];
+                const candidate = blMatch3[1];
+                if (candidate !== masterBl) {
+                    blNo = candidate;
+                }
             }
         }
 
