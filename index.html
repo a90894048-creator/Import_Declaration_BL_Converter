@@ -932,8 +932,13 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="settingRecipient">수신 이메일 주소</label>
-                    <input type="email" id="settingRecipient" class="form-control" placeholder="wsinc01@gmail.com" onchange="saveMailSettings()">
+                    <label for="settingRecipient1">수신 이메일 주소 1</label>
+                    <input type="email" id="settingRecipient1" class="form-control" placeholder="wsinc01@gmail.com" onchange="saveMailSettings()">
+                </div>
+
+                <div class="form-group">
+                    <label for="settingRecipient2">수신 이메일 주소 2 (선택)</label>
+                    <input type="email" id="settingRecipient2" class="form-control" placeholder="추가 수신 주소 입력 (선택)" onchange="saveMailSettings()">
                 </div>
 
                 <div class="form-group">
@@ -1102,7 +1107,8 @@
 
     // Global Settings
     const DEFAULT_SETTINGS = {
-        recipient: 'wsinc01@gmail.com',
+        recipient1: 'wsinc01@gmail.com',
+        recipient2: '',
         clientId: '',
         apiKey: '',
         subjectTemplate: '[관세법인 우신]] 수입신고필증 전달드립니다.',
@@ -1142,12 +1148,13 @@
 
     // Load settings from localStorage
     function loadMailSettings() {
-        let recipient = localStorage.getItem('mail_recipient');
+        let recipient1 = localStorage.getItem('mail_recipient1') || localStorage.getItem('mail_recipient');
         // 강제 복구 마이그레이션 wsinc01@gmail.com (대소문자 무관하도록 수정)
-        if (!recipient || recipient.toLowerCase().includes('wscustoms.co.kr')) {
-            recipient = 'wsinc01@gmail.com';
-            localStorage.setItem('mail_recipient', recipient);
+        if (!recipient1 || recipient1.toLowerCase().includes('wscustoms.co.kr')) {
+            recipient1 = 'wsinc01@gmail.com';
+            localStorage.setItem('mail_recipient1', recipient1);
         }
+        const recipient2 = localStorage.getItem('mail_recipient2') || '';
         
         const clientId = localStorage.getItem('mail_client_id') || DEFAULT_SETTINGS.clientId;
         const apiKey = localStorage.getItem('mail_api_key') || DEFAULT_SETTINGS.apiKey;
@@ -1162,7 +1169,8 @@
         const bodyEnd = localStorage.getItem('mail_body_end') || DEFAULT_SETTINGS.bodyEnd;
         const groupSize = localStorage.getItem('mail_group_size') || DEFAULT_SETTINGS.groupSize;
 
-        document.getElementById('settingRecipient').value = recipient;
+        document.getElementById('settingRecipient1').value = recipient1;
+        document.getElementById('settingRecipient2').value = recipient2;
         document.getElementById('settingClientId').value = clientId;
         document.getElementById('settingApiKey').value = apiKey;
         document.getElementById('settingSubject').value = subjectTemplate;
@@ -1175,7 +1183,8 @@
 
     // Save settings to localStorage
     function saveMailSettings() {
-        localStorage.setItem('mail_recipient', document.getElementById('settingRecipient').value.trim());
+        localStorage.setItem('mail_recipient1', document.getElementById('settingRecipient1').value.trim());
+        localStorage.setItem('mail_recipient2', document.getElementById('settingRecipient2').value.trim());
         localStorage.setItem('mail_client_id', document.getElementById('settingClientId').value.trim());
         localStorage.setItem('mail_api_key', document.getElementById('settingApiKey').value.trim());
         localStorage.setItem('mail_subject', document.getElementById('settingSubject').value.trim());
@@ -1669,8 +1678,19 @@
         let gSize = parseInt(document.getElementById('settingGroupSize').value, 10);
         if (isNaN(gSize) || gSize < 1) gSize = DEFAULT_SETTINGS.groupSize;
 
+        const r1 = document.getElementById('settingRecipient1').value.trim();
+        const r2 = document.getElementById('settingRecipient2').value.trim();
+        
+        let finalRecipient = r1;
+        if (r2) {
+            finalRecipient = `${r1}, ${r2}`;
+        }
+        if (!finalRecipient) finalRecipient = DEFAULT_SETTINGS.recipient1;
+
         return {
-            recipient: document.getElementById('settingRecipient').value.trim() || DEFAULT_SETTINGS.recipient,
+            recipient: finalRecipient,
+            recipient1: r1 || DEFAULT_SETTINGS.recipient1,
+            recipient2: r2,
             clientId: document.getElementById('settingClientId').value.trim(),
             apiKey: document.getElementById('settingApiKey').value.trim(),
             subjectTemplate: document.getElementById('settingSubject').value.trim() || DEFAULT_SETTINGS.subjectTemplate,
@@ -1968,7 +1988,7 @@
 
             sendBtn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;"></i> 발송 완료';
             sendBtn.className = 'btn btn-secondary';
-            showToast(`🎉 ${index + 1}그룹 메일이 wsinc01@gmail.com으로 완전 전송 완료되었습니다!`);
+            showToast(`🎉 ${index + 1}그룹 메일이 지정된 수신처로 완전 전송 완료되었습니다!`);
         } catch (err) {
             console.error('Gmail 발송 실패:', err);
             alert('메일 전송에 실패했습니다. API 설정 및 구글 권한을 확인해 주세요.\n에러: ' + (err.result?.error?.message || err.message));
