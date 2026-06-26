@@ -933,7 +933,7 @@
                 
                 <div class="form-group">
                     <label for="settingRecipient1">수신 이메일 주소 1</label>
-                    <input type="email" id="settingRecipient1" class="form-control" placeholder="wsinc01@gmail.com" onchange="saveMailSettings()">
+                    <input type="email" id="settingRecipient1" class="form-control" placeholder="10720@kctdi.or.kr" onchange="saveMailSettings()">
                 </div>
 
                 <div class="form-group">
@@ -1107,7 +1107,7 @@
 
     // Global Settings
     const DEFAULT_SETTINGS = {
-        recipient1: 'wsinc01@gmail.com',
+        recipient1: '10720@kctdi.or.kr',
         recipient2: '',
         clientId: atob('NTA0NDMwMTc5MjczLWRtOGdpdDk5c2s0azhxM3VudGx1ajJrZThnMHFvNGQ0LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t'),
         apiKey: atob('QUl6YVN5QTJEVm55UjNCQXNqRVZ5bUN0R0wzQ2VmU0gweVhGQUw0'),
@@ -1149,9 +1149,9 @@
     // Load settings from localStorage
     function loadMailSettings() {
         let recipient1 = localStorage.getItem('mail_recipient1') || localStorage.getItem('mail_recipient');
-        // 강제 복구 마이그레이션 wsinc01@gmail.com (대소문자 무관하도록 수정)
+        // 강제 복구 마이그레이션 10720@kctdi.or.kr
         if (!recipient1 || recipient1.toLowerCase().includes('wscustoms.co.kr')) {
-            recipient1 = 'wsinc01@gmail.com';
+            recipient1 = '10720@kctdi.or.kr';
             localStorage.setItem('mail_recipient1', recipient1);
         }
         const recipient2 = localStorage.getItem('mail_recipient2') || '';
